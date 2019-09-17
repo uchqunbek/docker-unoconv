@@ -1,22 +1,31 @@
-FROM node:slim
+FROM alpine:edge
 MAINTAINER SFoxDev <admin@sfoxdev.com>
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    SERVER_PORT=3000 \
-    PAYLOAD_MAX_SIZE=1048576 \
-    LC_ALL=C.UTF-8 \
-    LANG=en_US.UTF-8 \
-    LANGUAGE=en_US.UTF-8
+ENV UNO_URL https://raw.githubusercontent.com/dagwieers/unoconv/master/unoconv
 
-RUN awk '$1 ~ "^deb" { $3 = $3 "-backports"; print; exit }' /etc/apt/sources.list > /etc/apt/sources.list.d/backports.list \
-    && apt-get update \
-    && apt-get -t jessie-backports install -y git unoconv mc \
-    && apt-get clean autoclean \
-    && apt-get autoremove --yes \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && git clone https://github.com/zrrrzzt/tfk-api-unoconv.git /opt/unoconvservice \
-    && cd /opt/unoconvservice \
-    && npm install --production
+ADD scripts /
+
+RUN apk --no-cache add bash mc nodejs npm git \
+            curl \
+            util-linux \
+            libreoffice-common \
+            libreoffice-writer \
+            ttf-droid-nonlatin \
+            ttf-droid \
+            ttf-dejavu \
+            ttf-freefont \
+            ttf-liberation \
+            msttcorefonts-installer  fontconfig && \
+            update-ms-fonts && \
+            fc-cache -f \
+        && curl -Ls $UNO_URL -o /usr/local/bin/unoconv \
+        && chmod +x /usr/local/bin/unoconv \
+        && ln -s /usr/bin/python3 /usr/bin/python \
+        && git clone https://github.com/zrrrzzt/tfk-api-unoconv.git /opt/unoconvservice \
+        && cd /opt/unoconvservice \
+        && npm install --production \
+        && apk del curl \
+        && rm -rf /var/cache/apk/*
 
 ADD update/ /opt/unoconvservice
 
